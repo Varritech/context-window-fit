@@ -88,8 +88,54 @@
     .msg textarea { grid-column: 1; }
   }
 </style>
+
+<style data-chromex>
+html,body{max-width:100%;overflow-x:hidden;margin:0}
+@font-face{font-family:'Halyard Display';src:url('assets/fonts/Halyard-SemiBold.woff2') format('woff2');font-weight:600;font-style:normal;font-display:swap}
+@font-face{font-family:'Halyard Display';src:url('assets/fonts/Halyard-Medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Chakra Petch';src:url('assets/fonts/ChakraPetch-Medium.woff2') format('woff2');font-weight:500;font-style:normal;font-display:swap}
+@font-face{font-family:'Chakra Petch';src:url('assets/fonts/ChakraPetch-Bold.woff2') format('woff2');font-weight:700;font-style:normal;font-display:swap}
+:root{--vtex-bg:#07040D;--vtex-lime:#80FF00;--vtex-text:#FFFFFF;--vtex-muted:#9CA3AF}
+.vtex-nav{position:sticky;top:0;z-index:2147483645;background:rgba(7,4,13,.95);backdrop-filter:blur(8px);border-bottom:1px solid rgba(255,255,255,.08)}
+.vtex-nav-inner{display:flex;align-items:center;justify-content:space-between;gap:16px;max-width:1920px;margin:0 auto;padding:14px 20px;min-width:0}
+@media(max-width:768px){.vtex-nav-inner{padding:12px 14px;gap:10px}.vtex-cta{padding:7px 12px;font-size:12px}}
+.vtex-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:var(--vtex-text);font-family:'Halyard Display',sans-serif;font-weight:600;font-size:18px;letter-spacing:.08em}
+.vtex-logo img{width:36px;height:36px;border-radius:9999px;border:2px solid #fff;background:transparent}
+.vtex-links{display:flex;align-items:center;gap:22px;flex-wrap:wrap;font-family:'Chakra Petch',sans-serif;font-size:14px}
+.vtex-links a{color:var(--vtex-text);text-decoration:none;opacity:.85}
+.vtex-links a:hover{opacity:1;color:var(--vtex-lime)}
+.vtex-cta{font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:13px;color:var(--vtex-bg);background:var(--vtex-lime);padding:8px 16px;border-radius:6px;text-decoration:none;white-space:nowrap}
+.vtex-cta:hover{filter:brightness(1.1)}
+.vtex-footer{background:var(--vtex-bg);color:var(--vtex-text);font-family:'Chakra Petch',sans-serif;margin-top:64px;border-top:1px solid rgba(255,255,255,.08)}
+.vtex-footer-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:40px;max-width:1920px;margin:0 auto;padding:48px 24px 32px}
+.vtex-footer h4{font-family:'Halyard Display',sans-serif;font-weight:600;font-size:13px;letter-spacing:.12em;color:var(--vtex-lime);margin:0 0 14px}
+.vtex-footer ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:10px}
+.vtex-footer a{color:var(--vtex-text);text-decoration:none;font-size:14px;opacity:.85}
+.vtex-footer a:hover{opacity:1;color:var(--vtex-lime)}
+.vtex-services{display:flex;flex-direction:column;gap:12px}
+.vtex-service{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:8px;padding:14px}
+.vtex-service b{font-family:'Halyard Display',sans-serif;font-weight:600;color:var(--vtex-lime);font-size:14px;display:block;margin-bottom:4px}
+.vtex-service span{font-size:12.5px;color:var(--vtex-muted);line-height:1.5;display:block}
+.vtex-made{border-top:1px solid rgba(255,255,255,.08);padding:18px 24px;text-align:center;font-size:13px;color:var(--vtex-muted)}
+.vtex-made a{color:var(--vtex-lime);text-decoration:none;font-weight:700}
+@media(max-width:768px){.vtex-links{display:none}.vtex-footer-grid{grid-template-columns:1fr 1fr;gap:24px}}
+</style>
 </head>
 <body>
+
+<header class="vtex-nav" data-chromex>
+  <div class="vtex-nav-inner">
+    <a class="vtex-logo" href="https://varritech.com"><img src="assets/varritechlogo.png" alt="Varritech logo">VARRITECH</a>
+    <nav class="vtex-links">
+      <a href="https://varritech.com/ai">AI Partnership</a>
+      <a href="https://varritech.com/openclaw">AI Workforce</a>
+      <a href="https://varritech.com/mvp">MVP Program</a>
+      <a href="https://varritech.com/uiux">UI/UX Design</a>
+      <a href="https://varritech.com/tech-expert-support">Tech Expert Support</a>
+    </nav>
+    <a class="vtex-cta" href="https://varritech.com/#book">Book a Call</a>
+  </div>
+</header>
 <main class="cwf">
   <h1>Context Window Fit Checker</h1>
   <p class="sub">Paste everything you plan to send — prompt, history, files, few-shot examples — and see if it actually fits your model's context window. No account, no API key, nothing leaves this page.</p>
@@ -454,5 +500,41 @@ $('customWindow').value = MODELS[0].window;
 addMessage();
 render();
 </script>
+
+<footer class="vtex-footer" data-chromex>
+  <div class="vtex-footer-grid">
+    <div>
+      <a class="vtex-logo" href="https://varritech.com"><img src="assets/varritechlogo.png" alt="Varritech logo">VARRITECH</a>
+      <p style="font-size:12.5px;color:var(--vtex-muted);margin-top:12px;max-width:240px">Varritech builds AI workforces that run your day-to-day.</p>
+    </div>
+    <div>
+      <h4>COMPANY</h4>
+      <ul>
+        <li><a href="https://varritech.com">Home</a></li>
+        <li><a href="https://varritech.com/ai">AI Partnership</a></li>
+        <li><a href="https://varritech.com/mvp">MVP Program</a></li>
+        <li><a href="https://varritech.com/community">Founders Community</a></li>
+        <li><a href="https://varritech.com/careers">Careers</a></li>
+      </ul>
+    </div>
+    <div>
+      <h4>OUR SERVICES</h4>
+      <div class="vtex-services">
+        <div class="vtex-service"><b>Skillsmith</b><span>Done-for-you Claude Code skills that automate your agency's daily work.</span></div>
+        <div class="vtex-service"><b>AI Workforce</b><span>Custom AI agents that run your day-to-day operations end to end.</span></div>
+        <div class="vtex-service"><b>Scalewright</b><span>MRR growth systems that scale your recurring revenue on autopilot.</span></div>
+      </div>
+    </div>
+    <div>
+      <h4>CONTACT</h4>
+      <ul>
+        <li><a href="mailto:contact@varritech.com">contact@varritech.com</a></li>
+        <li><a href="https://varritech.com/#book">Book a Call</a></li>
+        <li><a href="https://www.linkedin.com/company/varritech-development-services">LinkedIn</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="vtex-made">Made by Varritech · <a href="https://varritech.com">varritech.com</a> · <a href="https://varritech.com/openclaw">Skillsmith</a> · <a href="https://varritech.com">Scalewright</a> · <a href="https://varritech.com/openclaw">AI Workforce</a></div>
+</footer>
 </body>
 </html>
