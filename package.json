@@ -1,0 +1,14 @@
+{
+  "name": "context-window-fit",
+  "version": "1.0.0",
+  "description": "Paste your full prompt, files, and few-shot examples — instantly see token count vs. your model's context window, with a trim button. Fully offline, keyless.",
+  "keywords": ["tokens", "context-window", "chatgpt", "claude", "gemini", "llm", "prompt", "offline"],
+  "license": "MIT",
+  "type": "commonjs",
+  "bin": {
+    "context-window-fit": "bin/context-window-fit.js"
+  },
+  "scripts": {
+    "test": "node --test 'test/**/*.test.js'"
+  }
+}

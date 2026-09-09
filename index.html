@@ -1,0 +1,458 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Context Window Fit Checker — will your prompt actually fit?</title>
+<meta name="description" content="Paste your prompt, chat history, files, and few-shot examples. Instantly see token count vs. your model's context window — no account, no API key, fully offline.">
+<style>
+  :root {
+    --bg: #07040D;
+    --panel: #120A1F;
+    --line: rgba(255, 255, 255, 0.09);
+    --lime: #80FF00;
+    --yellow: #FFD54D;
+    --red: #FF4D5E;
+    --text: #FFFFFF;
+    --muted: rgba(255, 255, 255, 0.62);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    line-height: 1.5;
+  }
+  main.cwf { max-width: 900px; margin: 0 auto; padding: 24px 16px 64px; }
+  .cwf h1 { font-size: clamp(1.4rem, 4.5vw, 2rem); margin: 0 0 6px; }
+  .cwf .sub { color: var(--muted); margin: 0 0 20px; font-size: 0.95rem; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .card h2 { font-size: 1rem; margin: 0 0 10px; }
+  .card h2 .hint { color: var(--muted); font-weight: normal; font-size: 0.8rem; }
+  label { display: block; font-size: 0.85rem; color: var(--muted); margin-bottom: 4px; }
+  textarea, select, input[type="number"] {
+    width: 100%; background: #0B0714; color: var(--text);
+    border: 1px solid var(--line); border-radius: 8px; padding: 10px;
+    font: inherit; font-size: 0.9rem;
+  }
+  textarea { min-height: 96px; resize: vertical; }
+  textarea:focus, select:focus, input:focus { outline: 2px solid var(--lime); outline-offset: -1px; border-color: transparent; }
+  .model-row { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
+  .msg { display: grid; grid-template-columns: 110px 1fr 36px; gap: 8px; margin-bottom: 8px; align-items: start; }
+  .msg textarea { min-height: 64px; }
+  .msg .tok { font-size: 0.75rem; color: var(--muted); margin-top: 4px; }
+  .icon-btn {
+    background: transparent; border: 1px solid var(--line); color: var(--muted);
+    border-radius: 8px; height: 36px; cursor: pointer; font-size: 1rem;
+  }
+  .icon-btn:hover { color: var(--red); border-color: var(--red); }
+  .btn {
+    background: var(--lime); color: #07040D; border: 0; border-radius: 8px;
+    padding: 10px 16px; font-weight: 700; font-size: 0.9rem; cursor: pointer;
+  }
+  .btn:hover { filter: brightness(1.1); }
+  .btn.ghost { background: transparent; color: var(--lime); border: 1px solid var(--lime); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .meter-wrap { text-align: center; padding: 8px 0 0; }
+  .meter-num { font-size: clamp(2rem, 8vw, 3rem); font-weight: 800; line-height: 1.1; }
+  .meter-num small { font-size: 0.4em; font-weight: 500; color: var(--muted); }
+  .badge {
+    display: inline-block; padding: 4px 14px; border-radius: 999px;
+    font-weight: 700; font-size: 0.85rem; margin: 8px 0 14px;
+  }
+  .badge.green { background: rgba(128,255,0,0.12); color: var(--lime); border: 1px solid var(--lime); }
+  .badge.yellow { background: rgba(255,213,77,0.12); color: var(--yellow); border: 1px solid var(--yellow); }
+  .badge.red { background: rgba(255,77,94,0.14); color: var(--red); border: 1px solid var(--red); }
+  .bar { height: 12px; background: #0B0714; border-radius: 999px; overflow: hidden; border: 1px solid var(--line); }
+  .bar > div { height: 100%; width: 0%; background: var(--lime); transition: width 0.25s ease, background 0.25s ease; }
+  .bar.yellow > div { background: var(--yellow); }
+  .bar.red > div { background: var(--red); }
+  .status-line { color: var(--muted); font-size: 0.9rem; margin: 12px 0 0; min-height: 1.4em; }
+  table.breakdown { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+  table.breakdown td { padding: 6px 4px; border-top: 1px solid var(--line); }
+  table.breakdown td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  table.breakdown td:first-child { color: var(--muted); }
+  .files-list { margin-top: 8px; font-size: 0.85rem; }
+  .files-list .frow { display: flex; justify-content: space-between; gap: 8px; padding: 5px 0; border-top: 1px solid var(--line); }
+  .files-list .frow span:first-child { color: var(--muted); word-break: break-all; }
+  .files-list .frow span:last-child { white-space: nowrap; font-variant-numeric: tabular-nums; }
+  .trim-note { color: var(--lime); font-size: 0.85rem; margin-top: 10px; min-height: 1.3em; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 12px; }
+  .fineprint { color: var(--muted); font-size: 0.78rem; margin-top: 18px; }
+  @media (max-width: 560px) {
+    main.cwf { padding: 16px 12px 48px; }
+    .model-row { grid-template-columns: 1fr; }
+    .msg { grid-template-columns: 1fr 36px; }
+    .msg select { grid-column: 1 / -1; }
+    .msg textarea { grid-column: 1; }
+  }
+</style>
+</head>
+<body>
+<main class="cwf">
+  <h1>Context Window Fit Checker</h1>
+  <p class="sub">Paste everything you plan to send — prompt, history, files, few-shot examples — and see if it actually fits your model's context window. No account, no API key, nothing leaves this page.</p>
+
+  <section class="card">
+    <h2>1 · Pick your model</h2>
+    <div class="model-row">
+      <div>
+        <label for="model">Model</label>
+        <select id="model"></select>
+      </div>
+      <div>
+        <label for="customWindow">Context window (tokens)</label>
+        <input type="number" id="customWindow" min="1000" step="1000">
+      </div>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2 · System prompt / instructions <span class="hint">— the big blob at the top</span></h2>
+    <textarea id="prompt" placeholder="You are a helpful assistant that…" spellcheck="false"></textarea>
+  </section>
+
+  <section class="card">
+    <h2>3 · Chat history <span class="hint">— oldest first; this is what gets trimmed</span></h2>
+    <div id="history"></div>
+    <div class="actions">
+      <button class="btn ghost" id="addMsg" type="button">+ Add message</button>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>4 · Few-shot examples <span class="hint">— paste them all, they add up fast</span></h2>
+    <textarea id="examples" placeholder="Example 1: …&#10;Example 2: …" spellcheck="false"></textarea>
+  </section>
+
+  <section class="card">
+    <h2>5 · Attached files <span class="hint">— text files are read locally; PDFs estimated from size</span></h2>
+    <input type="file" id="files" multiple>
+    <div class="files-list" id="filesList"></div>
+  </section>
+
+  <section class="card meter-wrap" aria-live="polite">
+    <div class="meter-num"><span id="used">0</span> <small>/ <span id="limit">0</span> tokens</small></div>
+    <div><span class="badge green" id="badge">FITS</span></div>
+    <div class="bar" id="barWrap"><div id="bar"></div></div>
+    <p class="status-line" id="statusLine">Add your content above to see the estimate.</p>
+    <table class="breakdown" id="breakdown"></table>
+    <div class="actions" style="justify-content:center">
+      <button class="btn" id="trimBtn" type="button" disabled>Trim oldest messages to fit</button>
+    </div>
+    <div class="trim-note" id="trimNote"></div>
+  </section>
+
+  <p class="fineprint">Estimates use a ~4 characters/token heuristic (denser for code/JSON). Real tokenizers vary ±10%. A red badge means silent truncation or a hard "context length exceeded" error is likely — trim history or shrink the prompt before sending.</p>
+</main>
+
+<script>
+/* FIT-CORE-BEGIN */
+'use strict';
+
+// Offline token estimator. Heuristic: ~4 characters per token for English
+// prose (OpenAI/Anthropic rule of thumb). Deliberately conservative on
+// structured text (JSON/code/CSV), which tokenizes denser.
+function estimateTokens(text, opts) {
+  if (!text) return 0;
+  const perToken = opts && opts.dense ? 3 : 4;
+  return Math.ceil(text.length / perToken);
+}
+
+// Common context windows (input + output combined). Keep in sync with
+// vendor docs; users can also type a custom window in the UI.
+const MODELS = [
+  { id: 'gpt-4o', label: 'ChatGPT — GPT-4o', window: 128000 },
+  { id: 'gpt-4.1', label: 'ChatGPT — GPT-4.1', window: 1047576 },
+  { id: 'o3', label: 'ChatGPT — o3', window: 200000 },
+  { id: 'claude-sonnet-5', label: 'Claude — Sonnet 5', window: 200000 },
+  { id: 'claude-sonnet-5-1m', label: 'Claude — Sonnet 5 (1M beta)', window: 1000000 },
+  { id: 'claude-opus-5', label: 'Claude — Opus 5', window: 200000 },
+  { id: 'claude-haiku-4-5', label: 'Claude — Haiku 4.5', window: 200000 },
+  { id: 'gemini-2.5-pro', label: 'Gemini — 2.5 Pro', window: 1048576 },
+  { id: 'gemini-2.5-flash', label: 'Gemini — 2.5 Flash', window: 1048576 },
+];
+
+// Band thresholds: green < 60%, yellow 60–85%, red >= 85% (or over 100%).
+// Bands are computed on the raw ratio so rounding can't flip a boundary case.
+function fitStatus(used, window) {
+  const ratio = window > 0 ? used / window : 1;
+  const pct = Math.round(ratio * 1000) / 10;
+  const level = ratio >= 0.85 ? 'red' : ratio >= 0.6 ? 'yellow' : 'green';
+  return { level, pct, over: used > window };
+}
+
+// Chat markup overhead per message (role tokens, separators).
+const MESSAGE_OVERHEAD = 4;
+
+function messageTokens(message) {
+  return estimateTokens(message && message.content) + MESSAGE_OVERHEAD;
+}
+
+// Drop oldest history messages until fixedTokens + history <= window*targetRatio.
+// Returns the surviving messages, what was dropped, and whether the remaining
+// fixed content alone still busts the budget (nothing left to trim).
+function trimToFit({ messages, fixedTokens, window, targetRatio }) {
+  const budget = Math.floor(window * (targetRatio || 0.85));
+  const kept = Array.isArray(messages) ? messages.slice() : [];
+  const dropped = [];
+  let total = fixedTokens + kept.reduce((s, m) => s + messageTokens(m), 0);
+  while (total > budget && kept.length > 0) {
+    const m = kept.shift();
+    dropped.push(m);
+    total -= messageTokens(m);
+  }
+  return { kept, dropped, newTotal: total, stillOver: total > budget };
+}
+
+const DENSE_EXTENSIONS = ['.json', '.csv', '.xml', '.html', '.js', '.ts', '.py', '.java', '.go', '.rs', '.sql', '.yaml', '.yml', '.toml'];
+
+// File tokens: prefer decoded text; structured formats tokenize denser.
+// Binary files (PDFs, docs, images) fall back to a byte-size heuristic —
+// extracted PDF text is roughly 1 token per 4 bytes of the raw file.
+function estimateFileTokens(name, byteSize, text) {
+  if (typeof text === 'string' && text.length > 0) {
+    const lower = (name || '').toLowerCase();
+    const dense = DENSE_EXTENSIONS.some((ext) => lower.endsWith(ext));
+    return estimateTokens(text, { dense });
+  }
+  return Math.ceil((byteSize || 0) / 4);
+}
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { estimateTokens, MODELS, fitStatus, trimToFit, estimateFileTokens, MESSAGE_OVERHEAD, messageTokens };
+}
+/* FIT-CORE-END */
+</script>
+<script>
+'use strict';
+
+const TEXT_EXTENSIONS = ['.txt', '.md', '.markdown', '.json', '.csv', '.xml', '.html', '.htm', '.js', '.ts', '.py', '.yaml', '.yml', '.log', '.sql', '.toml', '.ini', '.cfg', '.css'];
+const TRIM_TARGET = 0.85;
+
+const $ = (id) => document.getElementById(id);
+const fmt = (n) => n.toLocaleString('en-US');
+
+const state = { files: [] }; // { name, size, tokens }
+
+// --- model picker ---
+const modelSel = $('model');
+for (const m of MODELS) {
+  const opt = document.createElement('option');
+  opt.value = m.id;
+  opt.textContent = m.label + ' — ' + fmt(m.window) + ' tokens';
+  modelSel.appendChild(opt);
+}
+const customOpt = document.createElement('option');
+customOpt.value = 'custom';
+customOpt.textContent = 'Custom window…';
+modelSel.appendChild(customOpt);
+
+function currentWindow() {
+  if (modelSel.value === 'custom') {
+    const v = parseInt($('customWindow').value, 10);
+    return Number.isInteger(v) && v >= 1000 ? v : MODELS[0].window;
+  }
+  const m = MODELS.find((x) => x.id === modelSel.value);
+  return m ? m.window : MODELS[0].window;
+}
+
+modelSel.addEventListener('change', () => {
+  const isCustom = modelSel.value === 'custom';
+  $('customWindow').disabled = !isCustom;
+  if (isCustom) { $('customWindow').focus(); }
+  else { const m = MODELS.find((x) => x.id === modelSel.value); $('customWindow').value = m ? m.window : ''; }
+  render();
+});
+$('customWindow').addEventListener('input', render);
+
+// --- chat history rows ---
+function addMessage(role, content) {
+  const row = document.createElement('div');
+  row.className = 'msg';
+
+  const sel = document.createElement('select');
+  for (const r of ['user', 'assistant', 'system']) {
+    const o = document.createElement('option');
+    o.value = r; o.textContent = r;
+    sel.appendChild(o);
+  }
+  sel.value = role || 'user';
+
+  const ta = document.createElement('textarea');
+  ta.placeholder = 'Message text…';
+  ta.spellcheck = false;
+  ta.value = content || '';
+
+  const del = document.createElement('button');
+  del.className = 'icon-btn';
+  del.type = 'button';
+  del.title = 'Remove message';
+  del.textContent = '×';
+
+  const tok = document.createElement('div');
+  tok.className = 'tok';
+
+  sel.addEventListener('change', render);
+  ta.addEventListener('input', render);
+  del.addEventListener('click', () => { row.remove(); render(); });
+
+  const taWrap = document.createElement('div');
+  taWrap.appendChild(ta);
+  taWrap.appendChild(tok);
+  row.appendChild(sel);
+  row.appendChild(taWrap);
+  row.appendChild(del);
+  $('history').appendChild(row);
+}
+
+$('addMsg').addEventListener('click', () => { addMessage(); render(); });
+
+function historyMessages() {
+  return Array.from($('history').children).map((row) => ({
+    role: row.querySelector('select').value,
+    content: row.querySelector('textarea').value,
+  })).filter((m) => m.content.trim().length > 0);
+}
+
+function replaceHistory(messages) {
+  $('history').innerHTML = '';
+  for (const m of messages) addMessage(m.role, m.content);
+}
+
+// --- files ---
+$('files').addEventListener('change', (e) => {
+  const list = Array.from(e.target.files || []);
+  let pending = list.length;
+  if (!pending) return;
+  for (const f of list) {
+    const lower = f.name.toLowerCase();
+    const isText = TEXT_EXTENSIONS.some((ext) => lower.endsWith(ext));
+    if (isText) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        state.files.push({ name: f.name, size: f.size, tokens: estimateFileTokens(f.name, f.size, String(reader.result || '')) });
+        if (--pending === 0) render();
+      };
+      reader.onerror = () => {
+        state.files.push({ name: f.name, size: f.size, tokens: estimateFileTokens(f.name, f.size, null) });
+        if (--pending === 0) render();
+      };
+      reader.readAsText(f);
+    } else {
+      state.files.push({ name: f.name, size: f.size, tokens: estimateFileTokens(f.name, f.size, null) });
+      if (--pending === 0) render();
+    }
+  }
+  e.target.value = '';
+});
+
+function clearFile(idx) {
+  state.files.splice(idx, 1);
+  render();
+}
+
+// --- totals + render ---
+function totals() {
+  const promptT = estimateTokens($('prompt').value);
+  const examplesT = estimateTokens($('examples').value);
+  const filesT = state.files.reduce((s, f) => s + f.tokens, 0);
+  const historyT = historyMessages().reduce((s, m) => s + messageTokens(m), 0);
+  return { promptT, examplesT, filesT, historyT, total: promptT + examplesT + filesT + historyT };
+}
+
+const BADGE_TEXT = {
+  green: 'FITS',
+  yellow: 'TIGHT',
+  red: 'WON’T FIT',
+};
+const STATUS_TEXT = {
+  green: 'Fits comfortably — room to spare for the model’s reply.',
+  yellow: 'Getting tight. Remember the model’s answer also needs window space.',
+  red: 'Over the safe zone — expect silent truncation or a “context length exceeded” error.',
+};
+
+function render() {
+  const w = currentWindow();
+  const t = totals();
+  const s = fitStatus(t.total, w);
+
+  $('used').textContent = fmt(t.total);
+  $('limit').textContent = fmt(w);
+
+  const badge = $('badge');
+  badge.className = 'badge ' + s.level;
+  badge.textContent = BADGE_TEXT[s.level] + (s.over ? ' — OVERFLOW' : '');
+
+  const barWrap = $('barWrap');
+  barWrap.className = 'bar' + (s.level !== 'green' ? ' ' + s.level : '');
+  $('bar').style.width = Math.min(100, s.pct) + '%';
+
+  $('statusLine').textContent = t.total === 0
+    ? 'Add your content above to see the estimate.'
+    : STATUS_TEXT[s.level] + ' (' + s.pct + '% of window used)';
+
+  const rows = [
+    ['System prompt / instructions', t.promptT],
+    ['Chat history (' + historyMessages().length + ' msgs)', t.historyT],
+    ['Few-shot examples', t.examplesT],
+    ['Attached files (' + state.files.length + ')', t.filesT],
+  ];
+  $('breakdown').innerHTML = rows
+    .map(([k, v]) => '<tr><td>' + k + '</td><td>' + fmt(v) + '</td></tr>')
+    .join('');
+
+  // per-message token hints
+  Array.from($('history').children).forEach((row) => {
+    const m = { content: row.querySelector('textarea').value };
+    row.querySelector('.tok').textContent = fmt(messageTokens(m)) + ' tok';
+  });
+
+  // file list
+  $('filesList').innerHTML = state.files.map((f, i) =>
+    '<div class="frow"><span>' + escapeHtml(f.name) + '</span><span>' + fmt(f.tokens) + ' tok <button class="icon-btn" data-i="' + i + '" type="button" title="Remove file">×</button></span></div>'
+  ).join('');
+  $('filesList').querySelectorAll('button').forEach((b) =>
+    b.addEventListener('click', () => clearFile(parseInt(b.dataset.i, 10)))
+  );
+
+  $('trimBtn').disabled = historyMessages().length === 0;
+}
+
+function escapeHtml(s) {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+$('prompt').addEventListener('input', render);
+$('examples').addEventListener('input', render);
+
+// --- trim button ---
+$('trimBtn').addEventListener('click', () => {
+  const w = currentWindow();
+  const t = totals();
+  const fixed = t.promptT + t.examplesT + t.filesT;
+  const r = trimToFit({ messages: historyMessages(), fixedTokens: fixed, window: w, targetRatio: TRIM_TARGET });
+  if (r.dropped.length === 0) {
+    $('trimNote').textContent = t.total <= w * TRIM_TARGET
+      ? 'Already under the ' + Math.round(TRIM_TARGET * 100) + '% target — nothing to trim.'
+      : 'History is empty — shrink the prompt, examples, or files instead.';
+    return;
+  }
+  replaceHistory(r.kept);
+  const freed = t.total - r.newTotal;
+  $('trimNote').textContent =
+    'Dropped ' + r.dropped.length + ' oldest message' + (r.dropped.length === 1 ? '' : 's') +
+    ' (~' + fmt(freed) + ' tokens freed).' +
+    (r.stillOver ? ' Still over budget — your prompt/files alone exceed the target.' : '');
+  render();
+});
+
+// initial state
+$('customWindow').disabled = true;
+$('customWindow').value = MODELS[0].window;
+addMessage();
+render();
+</script>
+</body>
+</html>
